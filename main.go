@@ -21,7 +21,6 @@ type DummyClass struct {
 	Target string `json:"target"`
 }
 
-// Helper: Generates a random string of fixed length
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_:;{}¿?="
 
 func generateRandomString(length int) string {
@@ -85,26 +84,5 @@ func main() {
 		c.JSON(http.StatusOK, response)
 	})
 
-	r.Run(":8080")
+	r.Run(":1313")
 }
-
-/**
-
-
-COMPILE ->
-
-go build -o benchmark-api main.go
-
-Execute ->
-
-./benchmark-api
-
-Test ->
-
-curl -s http://localhost:8080/optimal | wc -c
-curl -s http://localhost:8080/slower | wc -c
-
-
-curl -v http://localhost:8080/slower 2>&1 | grep X-Duration
-
-*/

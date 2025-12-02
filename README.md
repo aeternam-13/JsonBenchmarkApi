@@ -1,4 +1,54 @@
-## 📊 Visualization Setup (Python)
+
+## API Setup (Go)
+To create the go binary 
+
+```bash
+go build -o benchmark-api
+
+./benchmark-api
+```
+
+The API can be locally tested with 
+```bash
+curl -s http://localhost:8080/optimal
+curl -s http://localhost:8080/slower
+curl -s http://localhost:8080/optimal | wc -c
+curl -s http://localhost:8080/slower | wc -c
+curl -v http://localhost:8080/slower 2>&1 | grep X-Duration
+```
+
+Every request will add an entry to the csv file that is used by python to generate the graphics.
+
+Also a test file was create to measure resource usage in the functions, to compare how much more memory/CPU is used by the server.
+
+
+Running test: 
+
+```bash
+go test -bench=. -benchmem
+```
+
+Output example (Arch linux):
+
+goos: linux
+goarch: amd64
+pkg: jsonbenchmark
+cpu: AMD Ryzen 5 5600X 6-Core Processor
+BenchmarkOptimal-12    	   8613	   143528 ns/op	  59906 B/op	      3 allocs/op
+BenchmarkSlower-12     	   5782	   207860 ns/op	 240129 B/op	      7 allocs/op
+PASS
+ok  	jsonbenchmark	2.479s
+
+
+What output means:
+
+ns/op: Nanoseconds per operation (Time).
+
+B/op: Bytes allocated per operation (Memory Usage). This is your memory cost.
+
+allocs/op: How many distinct objects were created in memory.
+
+## Visualization Setup (Python)
 
 To generate the performance charts (`benchmark_analysis.png`) from the CSV data, a python program was created, it requires a venv
 

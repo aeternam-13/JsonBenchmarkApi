@@ -96,11 +96,10 @@ def main():
     ax2 = fig.add_subplot(grid[0, 1])
     plot_network_usage(df, ax2)
 
-    # Bottom (Spans both columns)
+    # Bottom : works like flex/expanded in HTML/flutter (kind of)
     ax3 = fig.add_subplot(grid[1, :])
     plot_request_timeline(df, ax3)
-
-    # D. Save and Show
+    
     plt.suptitle('API Performance Benchmark: Optimal vs Double decode', fontsize=16, y=0.95)
     plt.savefig(OUTPUT_IMAGE)
     print(f"Success! Chart saved to: {OUTPUT_IMAGE}")
