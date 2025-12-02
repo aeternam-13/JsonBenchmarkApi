@@ -33,26 +33,6 @@ func generateRandomString(length int) string {
 	return string(b)
 }
 
-// Method to calculate the time spent in creating the response, works for both
-func NetworkMonitorMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		start := time.Now()
-
-		c.Next() // Process request
-
-		duration := time.Since(start)
-		responseSize := c.Writer.Size() // <--- Get response size in Bytes
-
-		// Add metrics to headers so the client can see them
-		c.Writer.Header().Set("X-Duration", fmt.Sprintf("%v", duration))
-		c.Writer.Header().Set("X-Size-Bytes", fmt.Sprintf("%d", responseSize))
-
-		// Log formatted output for your "Showcase"
-		fmt.Printf("path: %-10s | time: %-12v | size: %d bytes\n",
-			c.Request.URL.Path, duration, responseSize)
-	}
-}
-
 // Clair Obscure GOTY
 const commonFoo = "For those who come after !!!"
 const targetSize = 25000
@@ -79,8 +59,18 @@ func SlowerParsing() DummyClass {
 }
 
 func main() {
-	r := gin.Default()
-	r.Use(NetworkMonitorMiddleware())
+
+	// Initialize Logger (function is now in logger.go)
+	logger, err := NewBenchmarkLogger("benchmark_data.csv")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Logging data to benchmark_data.csv...")
+
+	r := gin.New()
+	r.Use(gin.Logger())
+	r.Use(gin.Recovery())
+	r.Use(NetworkMonitorMiddleware(logger))
 
 	// The target size for the String that will be compared in the endpoints and android app
 
