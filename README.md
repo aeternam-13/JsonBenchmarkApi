@@ -10,11 +10,11 @@ go build -o benchmark-api
 
 The API can be locally tested with 
 ```bash
-curl -s http://localhost:8080/optimal
-curl -s http://localhost:8080/slower
-curl -s http://localhost:8080/optimal | wc -c
-curl -s http://localhost:8080/slower | wc -c
-curl -v http://localhost:8080/slower 2>&1 | grep X-Duration
+curl -s http://localhost:1313/optimal
+curl -s http://localhost:1313/slower
+curl -s http://localhost:1313/optimal | wc -c
+curl -s http://localhost:1313/slower | wc -c
+curl -v http://localhost:1313/slower 2>&1 | grep X-Duration
 ```
 
 Every request will add an entry to the csv file that is used by python to generate the graphics.
@@ -61,13 +61,12 @@ We use a virtual environment named `stadistics` to manage dependencies.
 
 ```bash
 python -m venv stadistics
-source chart/bin/activate
 ```
 
 To activate the enviroment and get the dependencies
 
 ```bash
-source chart/bin/activate
+source stadistics/bin/activate
 pip install -r requirements.txt
 ```
 Finally run the program
