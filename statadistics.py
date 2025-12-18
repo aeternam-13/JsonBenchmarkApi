@@ -61,14 +61,14 @@ def plot_network_usage(df, axes):
 def plot_request_timeline(df, axes):
     """Draws a Scatter Plot showing every single request over time."""
 
-    sns.barplot(
+    sns.scatterplot(
         data=df,
         x='request_id',
         y='duration_us',
         hue='endpoint',
         #style='endpoint',
         palette=COLORS,
-        #s=60,
+        s=60,
         alpha=0.7,
         ax=axes
     )
