@@ -42,5 +42,9 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"message": "Log cleared"})
 	})
 
+	r.GET("csv", func(c *gin.Context) {
+		customLogger.DownloadHandler(c)
+	})
+
 	r.Run(":1313")
 }

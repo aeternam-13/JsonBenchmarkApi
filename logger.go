@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"sync"
@@ -106,6 +107,38 @@ func (logger *BenchmarkLogger) Clear() error {
 	logger.writer.Write([]string{"timestamp", "endpoint", "duration_ns", "size_bytes"})
 	logger.writer.Flush()
 	return nil
+}
+
+// DownloadHandler serves the CSV file, creates an snapshot that sends so we don't enter any race
+// condition when calling from multiple devices
+func (logger *BenchmarkLogger) DownloadHandler(c *gin.Context) {
+	logger.mutex.Lock()
+	logger.writer.Flush()
+
+	tempFile, err := os.CreateTemp("", "benchmark_*.csv")
+	if err != nil {
+		logger.mutex.Unlock()
+		c.String(500, "Error creating temp file")
+		return
+	}
+	defer os.Remove(tempFile.Name())
+
+	srcFile, err := os.Open(logger.filename)
+
+	if err != nil {
+		logger.mutex.Unlock()
+		c.String(500, "Error creating temp file")
+		return
+	}
+
+	io.Copy(tempFile, srcFile)
+
+	srcFile.Close()
+	tempFile.Close()
+
+	logger.mutex.Unlock()
+
+	c.FileAttachment(tempFile.Name(), "benchmark_data.csv")
 }
 
 // NetworkMonitorMiddleware intercepts the request to measure time and size
