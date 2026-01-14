@@ -13,9 +13,10 @@ import (
 
 // BenchmarkLogger handles thread-safe CSV writing
 type BenchmarkLogger struct {
-	file   *os.File
-	writer *csv.Writer
-	mu     sync.Mutex
+	filename string
+	file     *os.File
+	writer   *csv.Writer
+	mutex    sync.Mutex
 }
 
 // NewBenchmarkLogger creates the file and writes headers if empty
@@ -30,20 +31,53 @@ func NewBenchmarkLogger(filename string) (*BenchmarkLogger, error) {
 	// Check if file is empty to write header
 	stat, _ := file.Stat()
 	if stat.Size() == 0 {
-		writer.Write([]string{"timestamp", "endpoint", "duration_ns", "size_bytes"})
-		writer.Flush()
+		WriteHeaders(writer)
 	}
 
 	return &BenchmarkLogger{
-		file:   file,
-		writer: writer,
+		filename: filename,
+		file:     file,
+		writer:   writer,
 	}, nil
 }
 
+func WriteHeaders(writer *csv.Writer) {
+	writer.Write([]string{"timestamp", "endpoint", "duration_ns", "size_bytes"})
+	writer.Flush()
+}
+
 // Log writes a single record to the CSV
-func (l *BenchmarkLogger) Log(endpoint string, duration time.Duration, size int) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+func (logger *BenchmarkLogger) Log(endpoint string, duration time.Duration, size int) {
+	logger.mutex.Lock()
+	defer logger.mutex.Unlock()
+
+	// Check if file exists and is the same
+	reopen := false
+
+	if info, err := os.Stat(logger.filename); err != nil {
+		if os.IsNotExist(err) {
+			reopen = true
+		}
+	} else {
+		if fdInfo, err := logger.file.Stat(); err == nil && !os.SameFile(info, fdInfo) {
+			reopen = true
+		}
+	}
+
+	if reopen {
+		logger.file.Close()
+		file, err := os.OpenFile(logger.filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err == nil {
+			logger.file = file
+			logger.writer = csv.NewWriter(file)
+			if stat, _ := file.Stat(); stat.Size() == 0 {
+				WriteHeaders(logger.writer)
+			}
+		} else {
+			fmt.Println("Error reopening log file:", err)
+			return
+		}
+	}
 
 	record := []string{
 		strconv.FormatInt(time.Now().Unix(), 10),
@@ -52,8 +86,26 @@ func (l *BenchmarkLogger) Log(endpoint string, duration time.Duration, size int)
 		strconv.Itoa(size),
 	}
 
-	l.writer.Write(record)
-	l.writer.Flush()
+	logger.writer.Write(record)
+	logger.writer.Flush()
+}
+
+// Clear wipes the CSV content and rewrites headers
+func (logger *BenchmarkLogger) Clear() error {
+	logger.mutex.Lock()
+	defer logger.mutex.Unlock()
+
+	if err := logger.file.Truncate(0); err != nil {
+		return err
+	}
+	if _, err := logger.file.Seek(0, 0); err != nil {
+		return err
+	}
+
+	logger.writer = csv.NewWriter(logger.file)
+	logger.writer.Write([]string{"timestamp", "endpoint", "duration_ns", "size_bytes"})
+	logger.writer.Flush()
+	return nil
 }
 
 // NetworkMonitorMiddleware intercepts the request to measure time and size
@@ -61,13 +113,20 @@ func NetworkMonitorMiddleware(logger *BenchmarkLogger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 
-		c.Next() // Process request
+		c.Next()
 
 		duration := time.Since(start)
 		responseSize := c.Writer.Size()
 
+		path := c.Request.URL.Path
+
+		// Trying to make a set out of a map
+		isMonitoredPath := map[string]bool{"/optimal": true, "/slower": true}
+
 		// Write to CSV
-		logger.Log(c.Request.URL.Path, duration, responseSize)
+		if isMonitoredPath[path] {
+			logger.Log(path, duration, responseSize)
+		}
 
 		// Set headers for debugging
 		c.Writer.Header().Set("X-Duration", fmt.Sprintf("%v", duration))

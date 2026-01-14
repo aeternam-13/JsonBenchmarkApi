@@ -9,8 +9,8 @@ import (
 
 func main() {
 
-	// Initialize Logger (function is now in logger.go)
-	logger, err := NewBenchmarkLogger("benchmark_data.csv")
+	// Initialize Logger (function is now in customLogger.go)
+	customLogger, err := NewBenchmarkLogger("benchmark_data.csv")
 	if err != nil {
 		panic(err)
 	}
@@ -19,7 +19,7 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
-	r.Use(NetworkMonitorMiddleware(logger))
+	r.Use(NetworkMonitorMiddleware(customLogger))
 
 	// The target size for the String that will be compared in the endpoints and android app
 
@@ -32,6 +32,14 @@ func main() {
 		response := SlowerParsing()
 
 		c.JSON(http.StatusOK, response)
+	})
+
+	r.GET("/clearlog", func(c *gin.Context) {
+		if err := customLogger.Clear(); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "Log cleared"})
 	})
 
 	r.Run(":1313")

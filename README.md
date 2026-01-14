@@ -17,6 +17,11 @@ curl -s http://localhost:1313/slower | wc -c
 curl -v http://localhost:1313/slower 2>&1 | grep X-Duration
 ```
 
+Clear the csv file (Removes all data but not headers)
+
+```bash
+curl -s http://localhost:1313/clearlog
+```
 Every request will add an entry to the csv file that is used by python to generate the graphics.
 
 Also a test file was create to measure resource usage in the functions, to compare how much more memory/CPU is used by the server.
